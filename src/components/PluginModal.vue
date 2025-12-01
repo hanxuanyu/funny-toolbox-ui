@@ -1,13 +1,13 @@
 <template>
   <Dialog v-model:open="isOpen">
-    <DialogContent class="max-w-4xl max-h-[90vh] p-0">
-      <DialogHeader class="px-6 pt-6 pb-4 border-b">
+    <DialogContent class="sm:max-w-[90vw] lg:max-w-[1400px] max-h-[90vh] p-0 overflow-hidden">
+      <DialogHeader class="px-6 pt-6 pb-4 pr-14 border-b flex-shrink-0">
         <div class="flex justify-between items-start">
-          <div>
+          <div class="flex-1 pr-4">
             <DialogTitle>{{ plugin?.name }}</DialogTitle>
             <DialogDescription>{{ plugin?.description }}</DialogDescription>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -20,15 +20,31 @@
         </div>
       </DialogHeader>
       
-      <div class="flex-1 overflow-hidden">
-        <iframe
-          v-if="iframeUrl"
-          :src="iframeUrl"
-          class="w-full h-[70vh] border-0"
-          :title="plugin?.name"
-        />
-        <div v-else class="flex items-center justify-center h-[70vh] text-gray-500">
-          此插件暂无前端页面
+      <div class="flex-1 overflow-auto custom-scrollbar">
+        <!-- 加载状态 -->
+        <div 
+          v-if="isLoading" 
+          class="flex items-center justify-center h-[70vh] text-gray-500"
+        >
+          <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
+            <p>加载中...</p>
+          </div>
+        </div>
+        
+        <!-- iframe容器 -->
+        <div v-show="!isLoading" class="relative">
+          <iframe
+            v-if="iframeUrl"
+            ref="iframeRef"
+            :src="iframeUrl"
+            class="w-full h-[70vh] border-0"
+            :title="plugin?.name"
+            @load="handleIframeLoad"
+          />
+          <div v-else class="flex items-center justify-center h-[70vh] text-gray-500">
+            此插件暂无前端页面
+          </div>
         </div>
       </div>
     </DialogContent>
@@ -36,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { Plugin } from '@/api';
 import { getBackendBaseURL } from '@/api/request';
 import {
@@ -61,10 +77,28 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
+const isLoading = ref(false);
+const iframeRef = ref<HTMLIFrameElement | null>(null);
+
 const isOpen = computed({
   get: () => props.open,
   set: (value) => emit('update:open', value),
 });
+
+// 监听弹窗打开，重置加载状态
+watch(() => props.open, (newVal) => {
+  if (newVal && iframeUrl.value) {
+    isLoading.value = true;
+  }
+});
+
+// iframe加载完成处理
+const handleIframeLoad = () => {
+  // 延迟一小段时间确保内容完全渲染
+  setTimeout(() => {
+    isLoading.value = false;
+  }, 100);
+};
 
 const iframeUrl = computed(() => {
   if (!props.plugin?.frontendEntry) {
@@ -98,5 +132,37 @@ const openInNewWindow = () => {
 </script>
 
 <style scoped>
-/* 可以添加额外的样式 */
+/* 自定义滚动条样式 - 仅在滚动时显示 */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.custom-scrollbar:hover {
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(155, 155, 155, 0.7);
+}
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
     <!-- 顶部导航 -->
     <header class="bg-white/80 backdrop-blur-sm shadow-sm border-b sticky top-0 z-10">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -43,7 +43,7 @@
     </header>
 
     <!-- 主内容区 -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 w-full">
       <!-- 欢迎区域 -->
       <div class="text-center mb-12">
         <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
@@ -135,7 +135,7 @@
     />
 
     <!-- 页脚 -->
-    <footer class="mt-20 py-8 border-t bg-white/50 backdrop-blur-sm">
+    <footer class="mt-auto py-8 border-t bg-white/50 backdrop-blur-sm flex-shrink-0">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center text-sm text-gray-500">
           <p>© 2025 Funny Toolbox. 一个可扩展的工具平台.</p>
