@@ -90,9 +90,9 @@
                   </Badge>
                 </TableCell>
                 <TableCell class="text-right">
-                  <div class="flex justify-end gap-2">
+                  <div class="flex gap-2">
                     <Button
-                      v-if="plugin.status === 'STOPPED' || plugin.status === 'DISABLED'"
+                      v-if="plugin.status === 'DISABLED' || plugin.status === 'LOADED'"
                       size="sm"
                       variant="outline"
                       @click="handleEnable(plugin.id)"
@@ -101,7 +101,7 @@
                       启用
                     </Button>
                     <Button
-                      v-if="plugin.status === 'ENABLED' || plugin.status === 'STARTED'"
+                      v-if="plugin.status === 'ENABLED'"
                       size="sm"
                       variant="outline"
                       @click="handleDisable(plugin.id)"
@@ -183,6 +183,26 @@
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <!-- 卸载确认对话框 -->
+    <Dialog v-model:open="showConfirmDialog">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>确认卸载</DialogTitle>
+          <DialogDescription>
+            确定要卸载插件 "{{ confirmPluginId }}" 吗？此操作不可恢复。
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="showConfirmDialog = false">
+            取消
+          </Button>
+          <Button variant="destructive" @click="confirmUninstall">
+            确定卸载
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -220,6 +240,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { RefreshCw, Upload, Home, LogOut, Play, Square, RotateCw, Trash2 } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
 
 const router = useRouter();
 
@@ -231,6 +252,10 @@ const showUploadDialog = ref(false);
 const uploadFile = ref<File | null>(null);
 const uploading = ref(false);
 const uploadError = ref('');
+
+// 确认对话框状态（仅用于卸载插件）
+const showConfirmDialog = ref(false);
+const confirmPluginId = ref('');
 
 // 加载插件列表
 const loadPlugins = async () => {
@@ -252,8 +277,9 @@ const handleEnable = async (id: string) => {
   try {
     await enablePlugin(id);
     await loadPlugins();
+    toast.success('插件已启用');
   } catch (err: any) {
-    alert(err.message || '启用插件失败');
+    toast.error(err.message || '启用插件失败');
   }
 };
 
@@ -262,8 +288,9 @@ const handleDisable = async (id: string) => {
   try {
     await disablePlugin(id);
     await loadPlugins();
+    toast.success('插件已禁用');
   } catch (err: any) {
-    alert(err.message || '禁用插件失败');
+    toast.error(err.message || '禁用插件失败');
   }
 };
 
@@ -272,22 +299,29 @@ const handleReload = async (id: string) => {
   try {
     await reloadPlugin(id);
     await loadPlugins();
+    toast.success('插件已重载');
   } catch (err: any) {
-    alert(err.message || '重新加载插件失败');
+    toast.error(err.message || '重新加载插件失败');
   }
 };
 
 // 卸载插件
-const handleUninstall = async (id: string) => {
-  if (!confirm(`确定要卸载插件 ${id} 吗？`)) {
-    return;
-  }
+const handleUninstall = (id: string) => {
+  confirmPluginId.value = id;
+  showConfirmDialog.value = true;
+};
+
+// 确认卸载插件
+const confirmUninstall = async () => {
+  const id = confirmPluginId.value;
+  showConfirmDialog.value = false;
   
   try {
     await uninstallPlugin(id);
     await loadPlugins();
+    toast.success('插件已卸载');
   } catch (err: any) {
-    alert(err.message || '卸载插件失败');
+    toast.error(err.message || '卸载插件失败');
   }
 };
 
@@ -314,6 +348,7 @@ const handleUpload = async () => {
     showUploadDialog.value = false;
     uploadFile.value = null;
     await loadPlugins();
+    toast.success('插件上传成功');
   } catch (err: any) {
     uploadError.value = err.message || '上传插件失败';
   } finally {
@@ -337,13 +372,12 @@ const handleLogout = async () => {
 const getStatusVariant = (status: string) => {
   switch (status) {
     case 'ENABLED':
-    case 'STARTED':
       return 'default';
-    case 'STOPPED':
+    case 'LOADED':
       return 'secondary';
     case 'DISABLED':
       return 'outline';
-    case 'FAILED':
+    case 'ERROR':
       return 'destructive';
     default:
       return 'secondary';
@@ -354,14 +388,13 @@ const getStatusVariant = (status: string) => {
 const getStatusText = (status: string) => {
   switch (status) {
     case 'ENABLED':
-    case 'STARTED':
-      return '运行中';
-    case 'STOPPED':
-      return '已停止';
+      return '已启用';
+    case 'LOADED':
+      return '已加载';
     case 'DISABLED':
       return '已禁用';
-    case 'FAILED':
-      return '失败';
+    case 'ERROR':
+      return '错误';
     default:
       return status;
   }

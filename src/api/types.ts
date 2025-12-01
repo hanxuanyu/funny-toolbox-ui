@@ -25,7 +25,7 @@ export interface Plugin {
   description: string;
   author: string;
   icon?: string;
-  status: 'ENABLED' | 'DISABLED' | 'FAILED' | 'STARTED' | 'STOPPED';
+  status: 'LOADED' | 'ENABLED' | 'DISABLED' | 'ERROR';
   loadTime?: string;
   startTime?: string;
   frontendEntry?: string;

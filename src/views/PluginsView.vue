@@ -229,7 +229,8 @@ const isAuthenticated = computed(() => {
 
 // 过滤出已启用的插件
 const activePlugins = computed(() => {
-  const enabled = plugins.value.filter(p => p.status === 'ENABLED' || p.status === 'STARTED');
+  // 只显示 ENABLED 状态的插件
+  const enabled = plugins.value.filter(p => p.status === 'ENABLED');
   
   // 如果有搜索关键词，进行过滤
   let filtered = enabled;
@@ -283,14 +284,13 @@ const openPlugin = (plugin: Plugin) => {
 const getStatusText = (status: string) => {
   switch (status) {
     case 'ENABLED':
-    case 'STARTED':
       return '运行中';
-    case 'STOPPED':
-      return '已停止';
+    case 'LOADED':
+      return '已加载';
     case 'DISABLED':
       return '已禁用';
-    case 'FAILED':
-      return '失败';
+    case 'ERROR':
+      return '错误';
     default:
       return status;
   }
