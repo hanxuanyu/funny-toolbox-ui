@@ -3,13 +3,21 @@
     <!-- 顶部导航 -->
     <header class="bg-white/80 backdrop-blur-sm shadow-sm border-b sticky top-0 z-10">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex justify-between items-center">
-          <div class="flex items-center space-x-4">
-            <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Funny Toolbox
-            </h1>
-            <Badge variant="outline" class="hidden sm:inline-flex">工具集合</Badge>
+        <div class="flex justify-between items-center gap-4">
+          <!-- 搜索框 -->
+          <div class="flex-1 max-w-md">
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索工具..."
+                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+            </div>
           </div>
+          
+          <!-- 右侧按钮 -->
           <div class="flex items-center space-x-2 sm:space-x-4">
             <Button
               variant="outline"
@@ -44,16 +52,7 @@
 
     <!-- 主内容区 -->
     <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 w-full">
-      <!-- 欢迎区域 -->
-      <div class="text-center mb-12">
-        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-          欢迎使用 Funny Toolbox
-        </h2>
-        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-          一个可扩展的工具平台，提供各种实用的小工具
-        </p>
-      </div>
-
+      <!-- 移除欢迎区域 -->
       <!-- 加载状态 -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <div class="text-gray-500">加载中...</div>
@@ -67,8 +66,10 @@
       <!-- 空状态 -->
       <Card v-else-if="activePlugins.length === 0" class="max-w-2xl mx-auto p-12">
         <div class="text-center text-gray-500">
-          <p class="text-lg mb-2">暂无可用的插件</p>
-          <p class="text-sm">
+          <p class="text-lg mb-2">
+            {{ searchQuery ? '没有找到匹配的工具' : '暂无可用的插件' }}
+          </p>
+          <p class="text-sm" v-if="!searchQuery">
             <template v-if="isAuthenticated">
               请前往<router-link to="/admin" class="text-blue-600 hover:underline">管理后台</router-link>上传插件
             </template>
@@ -88,8 +89,14 @@
           @click="openPlugin(plugin)"
         >
           <CardHeader class="pb-4">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
+            <div class="flex items-start justify-between gap-3">
+              <!-- 左侧：图标 -->
+              <div class="text-4xl flex-shrink-0 group-hover:scale-110 transition-transform">
+                <PluginIcon :icon="plugin.icon" :alt="plugin.name" />
+              </div>
+              
+              <!-- 中间：标题和描述 -->
+              <div class="flex-1 min-w-0">
                 <CardTitle class="group-hover:text-blue-600 transition-colors">
                   {{ plugin.name }}
                 </CardTitle>
@@ -97,9 +104,19 @@
                   {{ plugin.description || '暂无描述' }}
                 </CardDescription>
               </div>
-              <div class="text-3xl ml-2 group-hover:scale-110 transition-transform">
-                <PluginIcon :icon="plugin.icon" :alt="plugin.name" />
-              </div>
+              
+              <!-- 右侧：收藏按钮 -->
+              <button
+                @click="toggleFavorite(plugin.id, $event)"
+                class="flex-shrink-0 p-1.5 rounded-full transition-all duration-200 hover:bg-gray-100"
+                :class="isFavorite(plugin.id) ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'"
+                :title="isFavorite(plugin.id) ? '取消收藏' : '收藏'"
+              >
+                <Star 
+                  :class="isFavorite(plugin.id) ? 'fill-current' : ''"
+                  class="h-5 w-5"
+                />
+              </button>
             </div>
           </CardHeader>
           <CardContent>
@@ -155,7 +172,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PluginModal from '@/components/PluginModal.vue';
 import PluginIcon from '@/components/PluginIcon.vue';
-import { RefreshCw, Settings } from 'lucide-vue-next';
+import { RefreshCw, Settings, Search, Star } from 'lucide-vue-next';
 
 const router = useRouter();
 
@@ -164,6 +181,46 @@ const loading = ref(false);
 const error = ref('');
 const showPluginModal = ref(false);
 const selectedPlugin = ref<Plugin | null>(null);
+const searchQuery = ref('');
+const favorites = ref<Set<string>>(new Set());
+
+// 从本地存储加载收藏
+const loadFavorites = () => {
+  try {
+    const saved = localStorage.getItem('plugin_favorites');
+    if (saved) {
+      favorites.value = new Set(JSON.parse(saved));
+    }
+  } catch (err) {
+    console.error('加载收藏失败:', err);
+  }
+};
+
+// 保存收藏到本地存储
+const saveFavorites = () => {
+  try {
+    localStorage.setItem('plugin_favorites', JSON.stringify(Array.from(favorites.value)));
+  } catch (err) {
+    console.error('保存收藏失败:', err);
+  }
+};
+
+// 切换收藏状态
+const toggleFavorite = (pluginId: string, event: Event) => {
+  event.stopPropagation(); // 阻止事件冒泡，避免触发打开插件
+  
+  if (favorites.value.has(pluginId)) {
+    favorites.value.delete(pluginId);
+  } else {
+    favorites.value.add(pluginId);
+  }
+  saveFavorites();
+};
+
+// 检查是否收藏
+const isFavorite = (pluginId: string) => {
+  return favorites.value.has(pluginId);
+};
 
 // 检查是否已登录
 const isAuthenticated = computed(() => {
@@ -172,7 +229,25 @@ const isAuthenticated = computed(() => {
 
 // 过滤出已启用的插件
 const activePlugins = computed(() => {
-  return plugins.value.filter(p => p.status === 'ENABLED' || p.status === 'STARTED');
+  const enabled = plugins.value.filter(p => p.status === 'ENABLED' || p.status === 'STARTED');
+  
+  // 如果有搜索关键词，进行过滤
+  let filtered = enabled;
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = enabled.filter(p => 
+      p.name.toLowerCase().includes(query) ||
+      p.description?.toLowerCase().includes(query) ||
+      p.author?.toLowerCase().includes(query)
+    );
+  }
+  
+  // 按收藏状态排序：收藏的插件排在前面
+  return filtered.sort((a, b) => {
+    const aFav = isFavorite(a.id) ? 1 : 0;
+    const bFav = isFavorite(b.id) ? 1 : 0;
+    return bFav - aFav;
+  });
 });
 
 // 加载插件列表
@@ -222,6 +297,7 @@ const getStatusText = (status: string) => {
 };
 
 onMounted(() => {
+  loadFavorites();
   loadPlugins();
 });
 </script>
