@@ -1,5 +1,6 @@
-import axios, { type AxiosInstance, type AxiosError } from 'axios';
+import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import type { ApiResult } from './types';
+import { toast } from 'vue-sonner';
 
 /**
  * 获取 API 基础路径
@@ -41,6 +42,23 @@ request.interceptors.request.use(
 );
 
 /**
+ * 处理登录失效的统一方法
+ */
+let isRedirecting = false;
+const handleUnauthorized = () => {
+  if (isRedirecting) return;
+  
+  isRedirecting = true;
+  localStorage.removeItem('isAuthenticated');
+  
+  toast.error('登录已失效，即将跳转到首页');
+  
+  setTimeout(() => {
+    window.location.href = '/';
+  }, 3000);
+};
+
+/**
  * 响应拦截器
  */
 request.interceptors.response.use(
@@ -55,15 +73,37 @@ request.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    // 处理 HTTP 错误
+    const config = error.config as InternalAxiosRequestConfig & { isLoginRequest?: boolean };
+    const isLoginRequest = config?.url?.includes('/auth/login');
+    
+    // 如果是登录请求的 401，不做特殊处理，让登录页面自己处理
+    if (isLoginRequest && error.response?.status === 401) {
+      return Promise.reject(error);
+    }
+    
+    // 处理 HTTP 401 错误（session 过期）
+    if (error.response?.status === 401) {
+      handleUnauthorized();
+      return Promise.reject(new Error('登录已过期'));
+    }
+    
+    // 处理网络错误（可能是 CORS 阻止的 401）
+    if (!error.response && error.request) {
+      const errorMessage = error.message || '';
+      if (errorMessage.includes('Network Error') || errorMessage.includes('ERR_FAILED')) {
+        const isAuthenticated = localStorage.getItem('isAuthenticated');
+        if (isAuthenticated === 'true') {
+          handleUnauthorized();
+          return Promise.reject(new Error('登录已过期'));
+        }
+      }
+      return Promise.reject(new Error('网络错误，请检查网络连接'));
+    }
+    
+    // 处理其他 HTTP 错误
     if (error.response) {
       const status = error.response.status;
-      
-      if (status === 401) {
-        // 未认证，跳转到登录页
-        window.location.href = '/login';
-        return Promise.reject(new Error('未登录或登录已过期'));
-      } else if (status === 403) {
+      if (status === 403) {
         return Promise.reject(new Error('没有权限'));
       } else if (status === 404) {
         return Promise.reject(new Error('请求的资源不存在'));
