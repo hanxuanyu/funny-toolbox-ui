@@ -1,5 +1,5 @@
 import request from './request';
-import type { PluginListResponse, PluginActionResponse, PluginInstallResponse } from './types';
+import type { PluginListResponse, PluginActionResponse, PluginInstallResponse, FrontendPluginPackMeta, FrontendPluginPackResponse } from './types';
 
 /**
  * 插件管理相关 API
@@ -47,9 +47,59 @@ export const installPlugin = (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
   
-  return request.post<PluginInstallResponse>('/platform/plugins/install', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+  return request.post<PluginInstallResponse>('/platform/plugins/install', formData);
+};
+
+/**
+ * 打包前端插件
+ * @param meta 插件元数据
+ * @param files 静态资源文件数组
+ * @param paths 每个文件的相对路径
+ * @param importPlugin 是否在打包完成后直接导入系统
+ */
+export const packFrontendPlugin = (
+  meta: FrontendPluginPackMeta,
+  files: File[],
+  paths: string[],
+  importPlugin: boolean = false
+) => {
+  const formData = new FormData();
+  
+  // 添加元数据
+  formData.append('meta', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+  
+  // 添加文件和路径
+  files.forEach((file) => {
+    formData.append('files', file);
   });
+  
+  paths.forEach((path) => {
+    formData.append('paths', path);
+  });
+  
+  return request.post<FrontendPluginPackResponse>(
+    `/platform/plugins/pack/frontend?import=${importPlugin}`,
+    formData
+  );
+};
+
+/**
+ * 下载打包产物
+ * @param fileName 文件名
+ */
+export const downloadPackedPlugin = (fileName: string) => {
+  return request.get(`/platform/plugins/pack/download/${fileName}`, {
+    responseType: 'blob',
+  });
+};
+
+/**
+ * 导入已打包的前端插件ZIP
+ * @param fileName 打包生成的 ZIP 文件名
+ * @param enable 是否在导入后立即启用该插件
+ */
+export const importPackedPlugin = (fileName: string, enable: boolean = true) => {
+  return request.post<FrontendPluginPackResponse>(
+    `/platform/plugins/pack/import?fileName=${encodeURIComponent(fileName)}&enable=${enable}`
+  );
 };

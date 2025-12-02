@@ -35,6 +35,10 @@
             <RefreshCw class="h-4 w-4 mr-2" />
             刷新
           </Button>
+          <Button @click="showPackDialog = true" variant="outline">
+            <Package class="h-4 w-4 mr-2" />
+            打包前端插件
+          </Button>
           <Button @click="showUploadDialog = true">
             <Upload class="h-4 w-4 mr-2" />
             上传插件
@@ -136,41 +140,48 @@
 
     <!-- 上传插件对话框 -->
     <Dialog v-model:open="showUploadDialog">
-      <DialogContent>
+      <DialogContent class="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>上传插件</DialogTitle>
           <DialogDescription>
-            选择插件 JAR 文件上传并安装
+            选择插件 JAR 或 ZIP 文件上传并安装
           </DialogDescription>
         </DialogHeader>
         <div class="space-y-4">
-          <div class="flex items-center justify-center w-full">
+          <div
+            class="flex items-center justify-center w-full"
+            @drop.prevent="handleFileDrop"
+            @dragover.prevent="isFileDialogDragging = true"
+            @dragenter.prevent="isFileDialogDragging = true"
+            @dragleave.prevent="isFileDialogDragging = false"
+          >
             <label
               for="file-upload"
-              class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+              class="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-all"
+              :class="isFileDialogDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'"
             >
               <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                <Upload class="h-10 w-10 mb-3" :class="isFileDialogDragging ? 'text-blue-500' : 'text-gray-400'" />
                 <p class="mb-2 text-sm text-gray-500">
-                  <span class="font-semibold">点击选择文件</span>
+                  <span class="font-semibold">点击选择或拖拽文件</span>
                 </p>
-                <p class="text-xs text-gray-500">JAR 文件</p>
-                <p v-if="uploadFile" class="mt-2 text-sm text-gray-700">
+                <p class="text-xs text-gray-500">JAR 或 ZIP 文件</p>
+                <p v-if="uploadFile" class="mt-3 text-sm text-gray-700 font-medium">
                   {{ uploadFile.name }}
+                </p>
+                <p v-if="uploadFile" class="text-xs text-gray-500">
+                  {{ formatUploadFileSize(uploadFile.size) }}
                 </p>
               </div>
               <input
                 id="file-upload"
                 type="file"
-                accept=".jar"
+                accept=".jar,.zip"
                 class="hidden"
                 @change="handleFileChange"
               />
             </label>
           </div>
-          
-          <Alert v-if="uploadError" variant="destructive">
-            <AlertDescription>{{ uploadError }}</AlertDescription>
-          </Alert>
         </div>
         <DialogFooter>
           <Button variant="outline" @click="showUploadDialog = false">
@@ -203,6 +214,12 @@
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <!-- 打包前端插件对话框 -->
+    <PackPluginModal
+      v-model:open="showPackDialog"
+      @success="handlePackSuccess"
+    />
   </div>
 </template>
 
@@ -222,7 +239,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Table,
   TableBody,
@@ -239,8 +255,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { RefreshCw, Upload, Home, LogOut, Play, Square, RotateCw, Trash2 } from 'lucide-vue-next';
+import { RefreshCw, Upload, Home, LogOut, Play, Square, RotateCw, Trash2, Package } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
+import PackPluginModal from '@/components/PackPluginModal.vue';
 
 const router = useRouter();
 
@@ -251,7 +268,10 @@ const error = ref('');
 const showUploadDialog = ref(false);
 const uploadFile = ref<File | null>(null);
 const uploading = ref(false);
-const uploadError = ref('');
+const isFileDialogDragging = ref(false);
+
+// 打包前端插件对话框状态
+const showPackDialog = ref(false);
 
 // 确认对话框状态（仅用于卸载插件）
 const showConfirmDialog = ref(false);
@@ -329,19 +349,53 @@ const confirmUninstall = async () => {
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
-    uploadFile.value = target.files[0] || null;
-    uploadError.value = '';
+    const file = target.files[0];
+    // 检查文件类型
+    if (file.name.endsWith('.jar') || file.name.endsWith('.zip')) {
+      uploadFile.value = file;
+    } else {
+      uploadFile.value = null;
+      toast.error('请选择 JAR 或 ZIP 文件');
+    }
   }
+};
+
+// 处理文件拖拽
+const handleFileDrop = (event: DragEvent) => {
+  isFileDialogDragging.value = false;
+  
+  if (!event.dataTransfer) return;
+  
+  const files = event.dataTransfer.files;
+  if (files && files.length > 0) {
+    const file = files[0];
+    // 检查文件类型
+    if (file.name.endsWith('.jar') || file.name.endsWith('.zip')) {
+      uploadFile.value = file;
+    } else {
+      uploadFile.value = null;
+      toast.error('请上传 JAR 或 ZIP 文件');
+    }
+  }
+};
+
+// 格式化文件大小
+const formatUploadFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
 // 上传插件
 const handleUpload = async () => {
   if (!uploadFile.value) {
+    toast.error('请选择要上传的文件');
     return;
   }
   
   uploading.value = true;
-  uploadError.value = '';
   
   try {
     await installPlugin(uploadFile.value);
@@ -350,7 +404,7 @@ const handleUpload = async () => {
     await loadPlugins();
     toast.success('插件上传成功');
   } catch (err: any) {
-    uploadError.value = err.message || '上传插件失败';
+    toast.error(err.message || '上传插件失败');
   } finally {
     uploading.value = false;
   }
@@ -366,6 +420,11 @@ const handleLogout = async () => {
     localStorage.removeItem('isAuthenticated');
     router.push('/login');
   }
+};
+
+// 处理打包成功
+const handlePackSuccess = async () => {
+  await loadPlugins();
 };
 
 // 获取状态变体

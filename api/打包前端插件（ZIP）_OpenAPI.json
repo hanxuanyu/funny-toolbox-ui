@@ -1,0 +1,208 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Funny Toolbox API",
+    "description": "Funny Toolbox 平台后端接口文档，包含插件管理、菜单等模块",
+    "contact": {
+      "name": "hxuanyu",
+      "url": "https://github.com/hxuanyu",
+      "email": ""
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "默认服务"
+    }
+  ],
+  "paths": {
+    "/api/platform/plugins/pack/frontend": {
+      "post": {
+        "tags": [
+          "平台管理"
+        ],
+        "summary": "打包前端插件（ZIP）",
+        "description": "上传前端构建产物和元数据，后端生成符合平台规范的 ZIP 插件包，可选择立刻导入",
+        "operationId": "packFrontendPlugin",
+        "parameters": [
+          {
+            "name": "import",
+            "in": "query",
+            "description": "是否在打包完成后直接导入系统",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "meta"
+                ],
+                "type": "object",
+                "properties": {
+                  "meta": {
+                    "$ref": "#/components/schemas/FrontendPluginPackMeta"
+                  },
+                  "zip": {
+                    "type": "string",
+                    "description": "dist.zip（可选，和 files 二选一）",
+                    "format": "binary",
+                    "name": "zip",
+                    "in": "query"
+                  },
+                  "files": {
+                    "type": "array",
+                    "description": "多个静态资源文件（可选，和 zip 二选一）",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  },
+                  "paths": {
+                    "type": "array",
+                    "description": "每个文件的相对路径，与 files 顺序一一对应，例如 js/app.js、index.html",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultFrontendPluginPackResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "FrontendPluginPackMeta": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "refType": null
+        },
+        "name": {
+          "type": "string",
+          "refType": null
+        },
+        "version": {
+          "type": "string",
+          "refType": null
+        },
+        "description": {
+          "type": "string",
+          "refType": null
+        },
+        "author": {
+          "type": "string",
+          "refType": null
+        },
+        "iconMeta": {
+          "$ref": "#/components/schemas/PluginIcon",
+          "refType": "PluginIcon"
+        },
+        "frontendEntry": {
+          "type": "string",
+          "refType": null
+        },
+        "frontendBasePath": {
+          "type": "string",
+          "refType": null
+        }
+      },
+      "description": "插件元数据 JSON"
+    },
+    "ResultFrontendPluginPackResult": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/FrontendPluginPackResult"
+        }
+      }
+    },
+    "PluginIcon": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "EMOJI",
+            "URL",
+            "SVG",
+            "FONT_AWESOME",
+            "MATERIAL",
+            "CUSTOM"
+          ],
+          "refType": null
+        },
+        "value": {
+          "type": "string",
+          "refType": null
+        },
+        "color": {
+          "type": "string",
+          "refType": null
+        },
+        "style": {
+          "type": "string",
+          "refType": null
+        }
+      }
+    },
+    "FrontendPluginPackResult": {
+      "type": "object",
+      "properties": {
+        "pluginId": {
+          "type": "string",
+          "refType": null
+        },
+        "fileName": {
+          "type": "string",
+          "refType": null
+        },
+        "fileSize": {
+          "type": "integer",
+          "format": "int64",
+          "refType": null
+        },
+        "downloadUrl": {
+          "type": "string",
+          "refType": null
+        },
+        "imported": {
+          "type": "boolean",
+          "refType": null
+        }
+      }
+    }
+  }
+}

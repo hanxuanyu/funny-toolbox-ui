@@ -46,3 +46,43 @@ export type PluginActionResponse = ApiResult<void>;
  * 上传插件响应
  */
 export type PluginInstallResponse = ApiResult<string>;
+
+/**
+ * 插件图标信息
+ */
+export interface PluginIcon {
+  type: 'EMOJI' | 'URL' | 'SVG' | 'FONT_AWESOME' | 'MATERIAL' | 'CUSTOM';
+  value: string;
+  color?: string;
+  style?: string;
+}
+
+/**
+ * 前端插件打包元数据
+ */
+export interface FrontendPluginPackMeta {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  iconMeta?: PluginIcon;
+  frontendEntry: string;
+  frontendBasePath?: string;
+}
+
+/**
+ * 前端插件打包结果
+ */
+export interface FrontendPluginPackResult {
+  pluginId: string;
+  fileName: string;
+  fileSize: number;
+  downloadUrl: string;
+  imported: boolean;
+}
+
+/**
+ * 前端插件打包响应
+ */
+export type FrontendPluginPackResponse = ApiResult<FrontendPluginPackResult>;
