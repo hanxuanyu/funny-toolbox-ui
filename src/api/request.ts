@@ -63,6 +63,11 @@ const handleUnauthorized = () => {
  */
 request.interceptors.response.use(
   (response) => {
+    // 如果响应类型是 blob（文件下载），直接返回，不做业务逻辑检查
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
+    
     const data = response.data as ApiResult;
     
     // 如果返回的 code 不是 200，视为业务错误

@@ -126,6 +126,15 @@
                     </Button>
                     <Button
                       size="sm"
+                      variant="outline"
+                      @click="handleDownload(plugin.id)"
+                      title="下载插件包"
+                    >
+                      <Download class="h-3 w-3 mr-1" />
+                      下载
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="destructive"
                       @click="handleUninstall(plugin.id)"
                     >
@@ -236,6 +245,7 @@ import {
   uninstallPlugin,
   reloadPlugin,
   installPlugin,
+  downloadPluginPackage,
   logout,
   checkAuthStatus,
   type Plugin,
@@ -259,7 +269,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { RefreshCw, Upload, Home, LogOut, Play, Square, RotateCw, Trash2, Package } from 'lucide-vue-next';
+import { RefreshCw, Upload, Home, LogOut, Play, Square, RotateCw, Trash2, Package, Download } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import PackPluginModal from '@/components/PackPluginModal.vue';
 
@@ -370,6 +380,56 @@ const confirmUninstall = async () => {
     toast.success('插件已卸载');
   } catch (err: any) {
     toast.error(err.message || '卸载插件失败');
+  }
+};
+
+// 下载插件包
+const handleDownload = async (pluginId: string) => {
+  try {
+    toast.info('正在下载插件包...');
+    const response = await downloadPluginPackage(pluginId);
+    
+    // 检查响应数据
+    if (!response.data || !(response.data instanceof Blob)) {
+      throw new Error('下载失败：响应数据格式错误');
+    }
+    
+    // 从响应头获取文件名
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = `${pluginId}.jar`; // 默认文件名
+    
+    if (contentDisposition) {
+      // 支持两种格式：
+      // 1. filename="xxx.jar"
+      // 2. filename*=UTF-8''xxx.jar
+      const fileNameMatch = contentDisposition.match(/filename\*?=(UTF-8'')?(['"]?)(.+?)\2($|;)/i);
+      if (fileNameMatch && fileNameMatch[3]) {
+        fileName = fileNameMatch[1] 
+          ? decodeURIComponent(fileNameMatch[3]) 
+          : fileNameMatch[3].replace(/['"]/g, '');
+      }
+    }
+    
+    // 创建下载链接
+    const blob = response.data;
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    
+    // 延迟清理，确保下载开始
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }, 100);
+    
+    toast.success(`插件包下载成功：${fileName}`);
+  } catch (err: any) {
+    console.error('下载插件包失败:', err);
+    toast.error(err.message || '下载插件包失败');
   }
 };
 

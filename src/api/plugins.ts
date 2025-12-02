@@ -103,3 +103,20 @@ export const importPackedPlugin = (fileName: string, enable: boolean = true) => 
     `/platform/plugins/pack/import?fileName=${encodeURIComponent(fileName)}&enable=${enable}`
   );
 };
+
+/**
+ * 下载插件包
+ * @param pluginId 插件ID
+ * @param ext 首选扩展名：jar 或 zip（可选）
+ */
+export const downloadPluginPackage = (pluginId: string, ext?: string) => {
+  const params = new URLSearchParams();
+  params.append('pluginId', pluginId);
+  if (ext) {
+    params.append('ext', ext);
+  }
+  
+  return request.get(`/platform/plugins/download?${params.toString()}`, {
+    responseType: 'blob',
+  });
+};
