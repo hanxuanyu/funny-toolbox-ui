@@ -31,7 +31,7 @@
           <p class="text-sm text-gray-500 mt-1">管理平台所有插件</p>
         </div>
         <div class="flex gap-2">
-          <Button @click="loadPlugins" variant="outline" size="sm">
+          <Button @click="loadPlugins" variant="outline">
             <RefreshCw class="h-4 w-4 mr-2" />
             刷新
           </Button>
@@ -81,7 +81,10 @@
                 <TableCell>
                   <div>
                     <div class="font-medium">{{ plugin.name }}</div>
-                    <div class="text-sm text-gray-500 hidden xl:block">
+                    <div 
+                      class="text-sm text-gray-500 hidden xl:block max-w-md truncate" 
+                      :title="plugin.description"
+                    >
                       {{ plugin.description }}
                     </div>
                   </div>
@@ -224,7 +227,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   getPluginList,
@@ -234,6 +237,7 @@ import {
   reloadPlugin,
   installPlugin,
   logout,
+  checkAuthStatus,
   type Plugin,
 } from '@/api';
 import { Button } from '@/components/ui/button';
@@ -276,6 +280,30 @@ const showPackDialog = ref(false);
 // 确认对话框状态（仅用于卸载插件）
 const showConfirmDialog = ref(false);
 const confirmPluginId = ref('');
+
+// 定时器ID
+let authCheckTimer: number | null = null;
+
+// 检查认证状态
+const checkAuthSession = async () => {
+  try {
+    await checkAuthStatus();
+  } catch (err: any) {
+    // 如果返回401或其他错误，说明session失效
+    if (err.response?.status === 401 || err.message?.includes('401')) {
+      console.log('Session已失效，跳转到登录页');
+      localStorage.removeItem('isAuthenticated');
+      // 清除定时器
+      if (authCheckTimer) {
+        clearInterval(authCheckTimer);
+        authCheckTimer = null;
+      }
+      toast.error('登录已过期，请重新登录');
+      // 立即跳转
+      router.push('/login');
+    }
+  }
+};
 
 // 加载插件列表
 const loadPlugins = async () => {
@@ -351,7 +379,7 @@ const handleFileChange = (event: Event) => {
   if (target.files && target.files.length > 0) {
     const file = target.files[0];
     // 检查文件类型
-    if (file.name.endsWith('.jar') || file.name.endsWith('.zip')) {
+    if (file && (file.name.endsWith('.jar') || file.name.endsWith('.zip'))) {
       uploadFile.value = file;
     } else {
       uploadFile.value = null;
@@ -370,7 +398,7 @@ const handleFileDrop = (event: DragEvent) => {
   if (files && files.length > 0) {
     const file = files[0];
     // 检查文件类型
-    if (file.name.endsWith('.jar') || file.name.endsWith('.zip')) {
+    if (file && (file.name.endsWith('.jar') || file.name.endsWith('.zip'))) {
       uploadFile.value = file;
     } else {
       uploadFile.value = null;
@@ -460,7 +488,22 @@ const getStatusText = (status: string) => {
 };
 
 onMounted(() => {
+  // 首次检查认证状态
+  checkAuthSession();
+  // 加载插件列表
   loadPlugins();
+  // 启动定时检查（每30秒检查一次）
+  authCheckTimer = window.setInterval(() => {
+    checkAuthSession();
+  }, 30000);
+});
+
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  if (authCheckTimer) {
+    clearInterval(authCheckTimer);
+    authCheckTimer = null;
+  }
 });
 </script>
 

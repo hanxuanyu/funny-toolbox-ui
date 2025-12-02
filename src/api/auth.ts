@@ -1,5 +1,5 @@
 import request from './request';
-import type { LoginRequest, ApiResult } from './types';
+import type { LoginRequest, ApiResult, AuthStatusResponse } from './types';
 
 /**
  * 认证相关 API
@@ -17,6 +17,20 @@ export const login = (data: LoginRequest) => {
  */
 export const logout = () => {
   return request.post<ApiResult<void>>('/auth/logout');
+};
+
+/**
+ * 检查认证状态
+ */
+export const checkAuthStatus = () => {
+  return request.get<AuthStatusResponse>('/platform/auth/status');
+};
+
+/**
+ * 受保护探活（HEAD请求）
+ */
+export const securePing = () => {
+  return request.head('/platform/secure/ping');
 };
 
 /**

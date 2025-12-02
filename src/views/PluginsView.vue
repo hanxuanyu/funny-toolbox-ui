@@ -85,60 +85,76 @@
         <Card
           v-for="plugin in activePlugins"
           :key="plugin.id"
-          class="group hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden"
-          @click="openPlugin(plugin)"
+          class="group hover:shadow-xl transition-all duration-300 overflow-hidden border-2 hover:border-blue-200"
         >
-          <CardHeader class="pb-4">
-            <div class="flex items-start justify-between gap-3">
+          <CardHeader class="pb-3">
+            <div class="flex items-start gap-4">
               <!-- 左侧：图标 -->
-              <div class="text-4xl flex-shrink-0 group-hover:scale-110 transition-transform">
+              <div class="flex-shrink-0 w-16 h-16 flex items-center justify-center text-5xl group-hover:scale-110 transition-transform bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg">
                 <PluginIcon :icon="plugin.icon" :alt="plugin.name" />
               </div>
               
-              <!-- 中间：标题和描述 -->
+              <!-- 右侧：标题和收藏 -->
               <div class="flex-1 min-w-0">
-                <CardTitle class="group-hover:text-blue-600 transition-colors">
-                  {{ plugin.name }}
-                </CardTitle>
-                <CardDescription class="mt-2 line-clamp-2">
-                  {{ plugin.description || '暂无描述' }}
-                </CardDescription>
+                <div class="flex items-start justify-between gap-2">
+                  <CardTitle class="text-lg font-semibold group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight">
+                    {{ plugin.name }}
+                  </CardTitle>
+                  <button
+                    @click="toggleFavorite(plugin.id, $event)"
+                    class="flex-shrink-0 p-1 rounded-full transition-all duration-200 hover:bg-gray-100"
+                    :class="isFavorite(plugin.id) ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'"
+                    :title="isFavorite(plugin.id) ? '取消收藏' : '收藏'"
+                  >
+                    <Star 
+                      :class="isFavorite(plugin.id) ? 'fill-current' : ''"
+                      class="h-4 w-4"
+                    />
+                  </button>
+                </div>
+                <div class="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" class="text-xs">
+                    v{{ plugin.version }}
+                  </Badge>
+                  <Badge variant="default" class="text-xs">
+                    {{ getStatusText(plugin.status) }}
+                  </Badge>
+                </div>
               </div>
-              
-              <!-- 右侧：收藏按钮 -->
-              <button
-                @click="toggleFavorite(plugin.id, $event)"
-                class="flex-shrink-0 p-1.5 rounded-full transition-all duration-200 hover:bg-gray-100"
-                :class="isFavorite(plugin.id) ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'"
-                :title="isFavorite(plugin.id) ? '取消收藏' : '收藏'"
-              >
-                <Star 
-                  :class="isFavorite(plugin.id) ? 'fill-current' : ''"
-                  class="h-5 w-5"
-                />
-              </button>
             </div>
           </CardHeader>
-          <CardContent>
-            <div class="flex items-center justify-between text-sm text-gray-500">
-              <div class="flex items-center space-x-2">
-                <Badge variant="outline" class="text-xs">
-                  v{{ plugin.version }}
-                </Badge>
-                <Badge variant="default" class="text-xs">
-                  {{ getStatusText(plugin.status) }}
-                </Badge>
+          
+          <CardContent class="pb-3">
+            <CardDescription class="line-clamp-3 text-sm min-h-[3.6rem]">
+              {{ plugin.description || '暂无描述' }}
+            </CardDescription>
+            <div class="mt-3 pt-3 border-t">
+              <div class="flex items-center text-xs text-gray-500">
+                <span class="truncate">作者: {{ plugin.author }}</span>
               </div>
-              <span class="text-xs">{{ plugin.author }}</span>
             </div>
           </CardContent>
-          <CardFooter class="pt-0">
+          
+          <CardFooter class="pt-0 pb-4 flex gap-2">
             <Button
-              variant="ghost"
+              variant="default"
               size="sm"
-              class="w-full group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors"
+              class="flex-1"
+              @click="openPluginInModal(plugin)"
+              title="在弹窗中打开"
             >
-              打开工具
+              <Maximize2 class="h-3.5 w-3.5 mr-1.5" />
+              弹窗
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              class="flex-1"
+              @click="openPluginInNewWindow(plugin)"
+              title="在新窗口中打开"
+            >
+              <ExternalLink class="h-3.5 w-3.5 mr-1.5" />
+              新窗口
             </Button>
           </CardFooter>
         </Card>
@@ -172,7 +188,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PluginModal from '@/components/PluginModal.vue';
 import PluginIcon from '@/components/PluginIcon.vue';
-import { RefreshCw, Settings, Search, Star } from 'lucide-vue-next';
+import { RefreshCw, Settings, Search, Star, Maximize2, ExternalLink } from 'lucide-vue-next';
 
 const router = useRouter();
 
@@ -269,8 +285,8 @@ const loadPlugins = async () => {
   }
 };
 
-// 打开插件
-const openPlugin = (plugin: Plugin) => {
+// 在模态框中打开插件
+const openPluginInModal = (plugin: Plugin) => {
   if (!plugin.frontendEntry) {
     alert('此插件暂无前端页面');
     return;
@@ -278,6 +294,30 @@ const openPlugin = (plugin: Plugin) => {
   
   selectedPlugin.value = plugin;
   showPluginModal.value = true;
+};
+
+// 在新窗口中打开插件
+const openPluginInNewWindow = (plugin: Plugin) => {
+  if (!plugin.frontendEntry) {
+    alert('此插件暂无前端页面');
+    return;
+  }
+  
+  // 构建插件URL，使用与PluginModal相同的逻辑
+  const backendBaseURL = import.meta.env.VITE_API_BASE_URL || '';
+  
+  let pluginUrl = plugin.frontendEntry;
+  
+  // 如果不是完整URL，需要拼接后端地址
+  if (!pluginUrl.startsWith('http://') && !pluginUrl.startsWith('https://')) {
+    if (pluginUrl.startsWith('/')) {
+      pluginUrl = backendBaseURL + pluginUrl;
+    } else {
+      pluginUrl = `${backendBaseURL}/${pluginUrl}`;
+    }
+  }
+  
+  window.open(pluginUrl, '_blank', 'noopener,noreferrer');
 };
 
 // 获取状态文本
@@ -304,11 +344,32 @@ onMounted(() => {
 
 <style scoped>
 /* 确保卡片内容不超出 */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-height: 1.3;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.leading-tight {
+  line-height: 1.3;
 }
 </style>

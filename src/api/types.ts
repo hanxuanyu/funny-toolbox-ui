@@ -86,3 +86,18 @@ export interface FrontendPluginPackResult {
  * 前端插件打包响应
  */
 export type FrontendPluginPackResponse = ApiResult<FrontendPluginPackResult>;
+
+/**
+ * 认证状态信息
+ */
+export interface AuthStatus {
+  authenticated: boolean;
+  user?: string;
+  sessionId?: string;
+  serverTime?: number;
+}
+
+/**
+ * 认证状态响应
+ */
+export type AuthStatusResponse = ApiResult<AuthStatus>;

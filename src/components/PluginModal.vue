@@ -1,7 +1,7 @@
 <template>
   <Dialog v-model:open="isOpen">
-    <DialogContent class="sm:max-w-[90vw] lg:max-w-[1400px] max-h-[90vh] p-0 overflow-hidden">
-      <DialogHeader class="px-6 pt-6 pb-4 pr-14 border-b flex-shrink-0">
+    <DialogContent class="sm:max-w-[90vw] lg:max-w-[1400px] max-h-[90vh] p-0 overflow-hidden gap-0">
+      <DialogHeader class="px-6 pt-4 pb-3 pr-14 border-b flex-shrink-0">
         <div class="flex justify-between items-start">
           <div class="flex-1 pr-4">
             <DialogTitle>{{ plugin?.name }}</DialogTitle>
@@ -20,7 +20,7 @@
         </div>
       </DialogHeader>
       
-      <div class="flex-1 overflow-auto custom-scrollbar">
+      <div class="flex-1 overflow-hidden">
         <!-- 加载状态 -->
         <div 
           v-if="isLoading" 
@@ -33,12 +33,12 @@
         </div>
         
         <!-- iframe容器 -->
-        <div v-show="!isLoading" class="relative">
+        <div v-show="!isLoading" class="h-full">
           <iframe
             v-if="iframeUrl"
             ref="iframeRef"
             :src="iframeUrl"
-            class="w-full h-[70vh] border-0"
+            class="w-full h-[70vh] border-0 block"
             :title="plugin?.name"
             @load="handleIframeLoad"
           />

@@ -4,12 +4,12 @@
   </span>
   <i v-else-if="iconType === 'fa'" :class="iconValue" />
   <i v-else-if="iconType === 'md'" class="material-icons">{{ iconValue }}</i>
-  <span v-else-if="iconType === 'svg'" v-html="iconValue" />
+  <span v-else-if="iconType === 'svg'" class="inline-flex items-center justify-center w-16 h-16" v-html="iconValue" />
   <img
     v-else-if="iconType === 'url'"
     :src="iconValue"
     :alt="alt"
-    class="inline-block w-6 h-6 object-contain"
+    class="inline-block w-16 h-16 object-contain"
   />
   <span v-else class="inline-block">
     {{ defaultIcon }}
@@ -93,11 +93,21 @@ const iconValue = computed(() => {
 /* Font Awesome 支持 - 如果项目中已安装 Font Awesome，可以移除此行 */
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 
+/* Font Awesome 图标尺寸 */
+.fa, .fas, .far, .fal, .fab {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .material-icons {
   font-family: 'Material Icons';
   font-weight: normal;
   font-style: normal;
-  font-size: 24px;
+  font-size: 64px;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -107,5 +117,13 @@ const iconValue = computed(() => {
   direction: ltr;
   -webkit-font-smoothing: antialiased;
   vertical-align: middle;
+}
+
+/* SVG 图标尺寸约束 */
+:deep(svg) {
+  width: 4rem;
+  height: 4rem;
+  max-width: 4rem;
+  max-height: 4rem;
 }
 </style>
