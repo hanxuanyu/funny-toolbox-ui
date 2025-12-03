@@ -402,6 +402,8 @@ const loadPlugins = async () => {
   try {
     const response = await getPluginList();
     plugins.value = response.data.data || [];
+    // 刷新时也重新加载标签列表
+    await loadAllTags();
     console.log('加载的插件列表:', plugins.value);
     console.log('已启用的插件:', activePlugins.value);
   } catch (err: any) {
