@@ -66,13 +66,14 @@
                 <TableHead>名称</TableHead>
                 <TableHead class="hidden md:table-cell">版本</TableHead>
                 <TableHead class="hidden lg:table-cell">作者</TableHead>
+                <TableHead class="hidden xl:table-cell">标签</TableHead>
                 <TableHead class="hidden sm:table-cell">状态</TableHead>
                 <TableHead class="text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow v-if="plugins.length === 0">
-                <TableCell colspan="6" class="text-center text-gray-500 py-8">
+                <TableCell colspan="7" class="text-center text-gray-500 py-8">
                   暂无插件
                 </TableCell>
               </TableRow>
@@ -91,55 +92,87 @@
                 </TableCell>
                 <TableCell class="hidden md:table-cell">{{ plugin.version }}</TableCell>
                 <TableCell class="hidden lg:table-cell">{{ plugin.author }}</TableCell>
+                <TableCell class="hidden xl:table-cell">
+                  <div class="flex flex-wrap gap-1 max-w-[200px]">
+                    <Badge 
+                      v-for="tag in plugin.tags?.slice(0, 3)" 
+                      :key="tag" 
+                      variant="outline"
+                      class="text-xs"
+                    >
+                      {{ tag }}
+                    </Badge>
+                    <Badge 
+                      v-if="plugin.tags && plugin.tags.length > 3"
+                      variant="outline"
+                      class="text-xs"
+                    >
+                      +{{ plugin.tags.length - 3 }}
+                    </Badge>
+                  </div>
+                </TableCell>
                 <TableCell class="hidden sm:table-cell">
                   <Badge :variant="getStatusVariant(plugin.status)">
                     {{ getStatusText(plugin.status) }}
                   </Badge>
                 </TableCell>
                 <TableCell class="text-right">
-                  <div class="flex gap-2">
+                  <div class="flex gap-1 flex-wrap justify-end">
                     <Button
                       v-if="plugin.status === 'DISABLED' || plugin.status === 'LOADED'"
-                      size="sm"
-                      variant="outline"
+                      size="icon"
+                      variant="ghost"
                       @click="handleEnable(plugin.id)"
+                      title="启用插件"
+                      class="h-8 w-8"
                     >
-                      <Play class="h-3 w-3 mr-1" />
-                      启用
+                      <Play class="h-4 w-4" />
                     </Button>
                     <Button
                       v-if="plugin.status === 'ENABLED'"
-                      size="sm"
-                      variant="outline"
+                      size="icon"
+                      variant="ghost"
                       @click="handleDisable(plugin.id)"
+                      title="禁用插件"
+                      class="h-8 w-8"
                     >
-                      <Square class="h-3 w-3 mr-1" />
-                      禁用
+                      <Square class="h-4 w-4" />
                     </Button>
                     <Button
-                      size="sm"
-                      variant="outline"
+                      size="icon"
+                      variant="ghost"
                       @click="handleReload(plugin.id)"
+                      title="重新加载插件"
+                      class="h-8 w-8"
                     >
-                      <RotateCw class="h-3 w-3 mr-1" />
-                      重载
+                      <RotateCw class="h-4 w-4" />
                     </Button>
                     <Button
-                      size="sm"
-                      variant="outline"
+                      size="icon"
+                      variant="ghost"
                       @click="handleDownload(plugin.id)"
                       title="下载插件包"
+                      class="h-8 w-8"
                     >
-                      <Download class="h-3 w-3 mr-1" />
-                      下载
+                      <Download class="h-4 w-4" />
                     </Button>
                     <Button
-                      size="sm"
-                      variant="destructive"
-                      @click="handleUninstall(plugin.id)"
+                      size="icon"
+                      variant="ghost"
+                      @click="handleManageTags(plugin)"
+                      title="管理标签"
+                      class="h-8 w-8"
                     >
-                      <Trash2 class="h-3 w-3 mr-1" />
-                      卸载
+                      <Tag class="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      @click="handleUninstall(plugin.id)"
+                      title="卸载插件"
+                      class="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 class="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>
@@ -232,6 +265,13 @@
       v-model:open="showPackDialog"
       @success="handlePackSuccess"
     />
+
+    <!-- 标签管理对话框 -->
+    <TagManagementModal
+      v-model:open="showTagDialog"
+      :plugin="tagManagementPlugin"
+      @success="handleTagSuccess"
+    />
   </div>
 </template>
 
@@ -269,9 +309,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { RefreshCw, Upload, Home, LogOut, Play, Square, RotateCw, Trash2, Package, Download } from 'lucide-vue-next';
+import { RefreshCw, Upload, Home, LogOut, Play, Square, RotateCw, Trash2, Package, Download, Tag } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import PackPluginModal from '@/components/PackPluginModal.vue';
+import TagManagementModal from '@/components/TagManagementModal.vue';
 
 const router = useRouter();
 
@@ -290,6 +331,10 @@ const showPackDialog = ref(false);
 // 确认对话框状态（仅用于卸载插件）
 const showConfirmDialog = ref(false);
 const confirmPluginId = ref('');
+
+// 标签管理对话框状态
+const showTagDialog = ref(false);
+const tagManagementPlugin = ref<Plugin | null>(null);
 
 // 定时器ID
 let authCheckTimer: number | null = null;
@@ -512,6 +557,17 @@ const handleLogout = async () => {
 
 // 处理打包成功
 const handlePackSuccess = async () => {
+  await loadPlugins();
+};
+
+// 打开标签管理对话框
+const handleManageTags = (plugin: Plugin) => {
+  tagManagementPlugin.value = plugin;
+  showTagDialog.value = true;
+};
+
+// 标签管理成功后刷新插件列表
+const handleTagSuccess = async () => {
   await loadPlugins();
 };
 

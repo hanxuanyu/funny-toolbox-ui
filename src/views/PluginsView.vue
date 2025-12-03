@@ -8,25 +8,99 @@
     </div>
 
     <!-- 主内容区 -->
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 w-full relative z-10">
-      <!-- 网站标题 -->
-      <div class="text-center mb-12">
-        <h1 class="text-5xl sm:text-6xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4 drop-shadow-sm">
-          Funny Toolbox
-        </h1>
-        <p class="text-lg text-gray-600/80">一个可扩展的工具平台</p>
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full relative z-10">
+      <!-- 顶部工具栏：标题 + 搜索 -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between gap-4">
+          <!-- 网站标题 -->
+          <div class="flex-shrink-0">
+            <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Funny Toolbox
+            </h1>
+          </div>
+          
+          <!-- 搜索框 - 右上角 -->
+          <div class="w-full sm:w-auto sm:min-w-[280px] lg:min-w-[360px]">
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search class="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索工具..."
+                class="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm placeholder-gray-400 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:bg-white hover:shadow-sm"
+              />
+              <div v-if="searchQuery" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <button
+                  @click="searchQuery = ''"
+                  class="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X class="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- 搜索框 -->
-      <div class="max-w-2xl mx-auto mb-12">
-        <div class="relative group">
-          <Search class="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="搜索你需要的工具..."
-            class="w-full pl-12 pr-4 py-4 text-lg border-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all bg-white/60 backdrop-blur-md shadow-lg hover:shadow-xl hover:bg-white/70"
-          />
+      <!-- 标签筛选工具栏 -->
+      <div class="mb-8">
+        <div class="bg-white/60 backdrop-blur-md rounded-xl shadow p-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- 筛选图标和标题 -->
+            <div class="flex items-center gap-1.5 text-gray-700">
+              <Filter class="h-3.5 w-3.5" />
+              <span class="text-xs font-medium">标签:</span>
+            </div>
+
+            <!-- 已选标签 -->
+            <template v-if="selectedTags.size > 0">
+              <Badge
+                v-for="tag in Array.from(selectedTags)"
+                :key="tag"
+                class="px-2 py-0.5 text-xs cursor-pointer bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                @click="toggleTag(tag)"
+              >
+                {{ tag }}
+                <X class="h-3 w-3 ml-1" />
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                @click="clearTagFilters"
+                class="text-xs h-6 px-2"
+              >
+                <X class="h-3 w-3 mr-1" />
+                清除
+              </Button>
+              <div class="w-px h-4 bg-gray-300"></div>
+            </template>
+
+            <!-- 可用标签（始终显示前几个） -->
+            <template v-if="allTags.length > 0">
+              <Badge
+                v-for="tag in (showTagFilter ? allTags : allTags.slice(0, 8))"
+                :key="tag"
+                variant="outline"
+                class="px-2 py-0.5 text-xs cursor-pointer transition-all"
+                :class="selectedTags.has(tag) ? 'hidden' : 'hover:bg-gray-50'"
+                @click="toggleTag(tag)"
+              >
+                {{ tag }}
+              </Badge>
+              <Button
+                v-if="allTags.length > 8"
+                variant="ghost"
+                size="sm"
+                @click="showTagFilter = !showTagFilter"
+                class="text-xs h-6 px-2"
+              >
+                {{ showTagFilter ? '收起' : `更多 (${allTags.length - 8})` }}
+              </Button>
+            </template>
+            <span v-else class="text-xs text-gray-400">暂无标签</span>
+          </div>
         </div>
       </div>
 
@@ -104,6 +178,26 @@
             <CardDescription class="line-clamp-3 text-sm text-gray-600 leading-relaxed flex-1">
               {{ plugin.description || '暂无描述' }}
             </CardDescription>
+            
+            <!-- 标签显示 -->
+            <div v-if="plugin.tags && plugin.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
+              <Badge
+                v-for="tag in plugin.tags.slice(0, 3)"
+                :key="tag"
+                variant="secondary"
+                class="text-xs px-2 py-0 bg-blue-100/80 text-blue-700"
+              >
+                {{ tag }}
+              </Badge>
+              <Badge
+                v-if="plugin.tags.length > 3"
+                variant="secondary"
+                class="text-xs px-2 py-0 bg-gray-100/80 text-gray-600"
+              >
+                +{{ plugin.tags.length - 3 }}
+              </Badge>
+            </div>
+            
             <!-- 固定在底部的作者和链接信息 -->
             <div class="mt-2.5 flex items-center justify-between text-xs text-gray-500 flex-shrink-0">
               <span class="truncate">{{ plugin.author }}</span>
@@ -175,14 +269,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getPluginList, type Plugin } from '@/api';
+import { getPluginList, getAllTags, type Plugin } from '@/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PluginModal from '@/components/PluginModal.vue';
 import PluginIcon from '@/components/PluginIcon.vue';
-import { RefreshCw, Settings, Search, Star, ExternalLink } from 'lucide-vue-next';
+import { RefreshCw, Settings, Search, Star, ExternalLink, X, Filter } from 'lucide-vue-next';
 
 const router = useRouter();
 
@@ -193,6 +287,11 @@ const showPluginModal = ref(false);
 const selectedPlugin = ref<Plugin | null>(null);
 const searchQuery = ref('');
 const favorites = ref<Set<string>>(new Set());
+
+// 标签相关状态
+const allTags = ref<string[]>([]);
+const selectedTags = ref<Set<string>>(new Set());
+const showTagFilter = ref(false);
 
 // 从本地存储加载收藏
 const loadFavorites = () => {
@@ -232,6 +331,30 @@ const isFavorite = (pluginId: string) => {
   return favorites.value.has(pluginId);
 };
 
+// 加载所有标签
+const loadAllTags = async () => {
+  try {
+    const response = await getAllTags();
+    allTags.value = response.data.data || [];
+  } catch (err: any) {
+    console.error('加载标签失败:', err);
+  }
+};
+
+// 切换标签选择
+const toggleTag = (tag: string) => {
+  if (selectedTags.value.has(tag)) {
+    selectedTags.value.delete(tag);
+  } else {
+    selectedTags.value.add(tag);
+  }
+};
+
+// 清除所有标签筛选
+const clearTagFilters = () => {
+  selectedTags.value.clear();
+};
+
 // 检查是否已登录
 const isAuthenticated = computed(() => {
   return localStorage.getItem('isAuthenticated') === 'true';
@@ -242,14 +365,24 @@ const activePlugins = computed(() => {
   // 只显示 ENABLED 状态的插件
   const enabled = plugins.value.filter(p => p.status === 'ENABLED');
   
-  // 如果有搜索关键词，进行过滤
+  // 按标签筛选
   let filtered = enabled;
+  if (selectedTags.value.size > 0) {
+    filtered = enabled.filter(p => {
+      if (!p.tags || p.tags.length === 0) return false;
+      // 只要插件包含任一选中的标签就显示（OR 逻辑）
+      return Array.from(selectedTags.value).some(tag => p.tags!.includes(tag));
+    });
+  }
+  
+  // 如果有搜索关键词，进行过滤
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
-    filtered = enabled.filter(p => 
+    filtered = filtered.filter(p => 
       p.name.toLowerCase().includes(query) ||
       p.description?.toLowerCase().includes(query) ||
-      p.author?.toLowerCase().includes(query)
+      p.author?.toLowerCase().includes(query) ||
+      p.tags?.some(tag => tag.toLowerCase().includes(query))
     );
   }
   
@@ -317,6 +450,7 @@ const openPluginInNewWindow = (plugin: Plugin) => {
 onMounted(() => {
   loadFavorites();
   loadPlugins();
+  loadAllTags();
 });
 </script>
 

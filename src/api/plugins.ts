@@ -1,5 +1,5 @@
 import request from './request';
-import type { PluginListResponse, PluginActionResponse, PluginInstallResponse, FrontendPluginPackMeta, FrontendPluginPackResponse } from './types';
+import type { PluginListResponse, PluginActionResponse, PluginInstallResponse, FrontendPluginPackMeta, FrontendPluginPackResponse, TagListResponse } from './types';
 
 /**
  * 插件管理相关 API
@@ -119,4 +119,64 @@ export const downloadPluginPackage = (pluginId: string, ext?: string) => {
   return request.get(`/platform/plugins/download?${params.toString()}`, {
     responseType: 'blob',
   });
+};
+
+/**
+ * 获取所有标签
+ */
+export const getAllTags = () => {
+  return request.get<TagListResponse>('/platform/plugins/tags');
+};
+
+/**
+ * 获取插件标签
+ * @param pluginId 插件ID
+ */
+export const getPluginTags = (pluginId: string) => {
+  return request.get<TagListResponse>(`/platform/plugins/${pluginId}/tags`);
+};
+
+/**
+ * 设置插件标签
+ * @param pluginId 插件ID
+ * @param tags 标签数组
+ */
+export const setPluginTags = (pluginId: string, tags: string[]) => {
+  return request.put<PluginActionResponse>(`/platform/plugins/${pluginId}/tags`, tags);
+};
+
+/**
+ * 新增插件标签
+ * @param pluginId 插件ID
+ * @param tag 标签
+ */
+export const addPluginTag = (pluginId: string, tag: string) => {
+  return request.post<PluginActionResponse>(`/platform/plugins/${pluginId}/tags?tag=${encodeURIComponent(tag)}`);
+};
+
+/**
+ * 移除插件标签
+ * @param pluginId 插件ID
+ * @param tag 标签
+ */
+export const removePluginTag = (pluginId: string, tag: string) => {
+  return request.delete<PluginActionResponse>(`/platform/plugins/${pluginId}/tags?tag=${encodeURIComponent(tag)}`);
+};
+
+/**
+ * 按单个标签筛选插件
+ * @param tag 标签
+ */
+export const searchPluginsByTag = (tag: string) => {
+  return request.get<PluginListResponse>(`/platform/plugins/search/by-tag?tag=${encodeURIComponent(tag)}`);
+};
+
+/**
+ * 按多个标签筛选插件
+ * @param tags 标签数组
+ * @param matchAll 是否匹配所有标签（AND），默认false（OR）
+ */
+export const searchPluginsByTags = (tags: string[], matchAll: boolean = false) => {
+  const tagsParam = tags.join(',');
+  return request.get<PluginListResponse>(`/platform/plugins/search/by-tags?tags=${encodeURIComponent(tagsParam)}&matchAll=${matchAll}`);
 };

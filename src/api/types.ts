@@ -30,6 +30,7 @@ export interface Plugin {
   startTime?: string;
   frontendEntry?: string;
   apiPrefix?: string;
+  tags?: string[];
 }
 
 /**
@@ -101,3 +102,8 @@ export interface AuthStatus {
  * 认证状态响应
  */
 export type AuthStatusResponse = ApiResult<AuthStatus>;
+
+/**
+ * 标签列表响应
+ */
+export type TagListResponse = ApiResult<string[]>;
