@@ -65,7 +65,7 @@
         <Card
           v-for="plugin in activePlugins"
           :key="plugin.id"
-          class="group hover:shadow-2xl transition-all duration-300 overflow-hidden border-0 bg-white/60 backdrop-blur-md hover:bg-white/70 hover:scale-[1.02] cursor-pointer relative"
+          class="group hover:shadow-2xl transition-all duration-300 overflow-hidden border-0 bg-white/60 backdrop-blur-md hover:bg-white/70 hover:scale-[1.02] cursor-pointer relative flex flex-col"
           @click="openPluginInModal(plugin)"
         >
           <!-- 收藏按钮 - 绝对定位 -->
@@ -100,11 +100,12 @@
             </div>
           </CardHeader>
           
-          <CardContent class="pt-1.5 pb-3">
-            <CardDescription class="line-clamp-3 text-sm text-gray-600 leading-relaxed">
+          <CardContent class="pt-1.5 pb-3 flex-1 flex flex-col">
+            <CardDescription class="line-clamp-3 text-sm text-gray-600 leading-relaxed flex-1">
               {{ plugin.description || '暂无描述' }}
             </CardDescription>
-            <div class="mt-2.5 flex items-center justify-between text-xs text-gray-500">
+            <!-- 固定在底部的作者和链接信息 -->
+            <div class="mt-2.5 flex items-center justify-between text-xs text-gray-500 flex-shrink-0">
               <span class="truncate">{{ plugin.author }}</span>
               <!-- 新窗口打开按钮 -->
               <button
