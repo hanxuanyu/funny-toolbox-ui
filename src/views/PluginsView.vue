@@ -100,6 +100,15 @@
               </Button>
             </template>
             <span v-else class="text-xs text-gray-400">暂无标签</span>
+
+            <!-- 匹配全部标签开关 -->
+            <div class="ml-auto flex items-center gap-2 text-xs text-gray-600">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <Switch v-model="matchAllTags" />
+                <span>匹配全部标签</span>
+              </label>
+              <span class="text-[11px] text-gray-400 hidden sm:inline">开启后需要包含所有选中标签</span>
+            </div>
           </div>
         </div>
       </div>
@@ -274,6 +283,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 import PluginModal from '@/components/PluginModal.vue';
 import PluginIcon from '@/components/PluginIcon.vue';
 import { RefreshCw, Settings, Search, Star, ExternalLink, X, Filter } from 'lucide-vue-next';
@@ -292,6 +302,7 @@ const favorites = ref<Set<string>>(new Set());
 const allTags = ref<string[]>([]);
 const selectedTags = ref<Set<string>>(new Set());
 const showTagFilter = ref(false);
+const matchAllTags = ref(false);
 
 // 从本地存储加载收藏
 const loadFavorites = () => {
@@ -370,8 +381,10 @@ const activePlugins = computed(() => {
   if (selectedTags.value.size > 0) {
     filtered = enabled.filter(p => {
       if (!p.tags || p.tags.length === 0) return false;
-      // 只要插件包含任一选中的标签就显示（OR 逻辑）
-      return Array.from(selectedTags.value).some(tag => p.tags!.includes(tag));
+      const tags = Array.from(selectedTags.value);
+      return matchAllTags.value
+        ? tags.every(tag => p.tags!.includes(tag))
+        : tags.some(tag => p.tags!.includes(tag));
     });
   }
   
