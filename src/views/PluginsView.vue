@@ -61,82 +61,62 @@
       </Card>
 
       <!-- 插件网格 -->
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <Card
           v-for="plugin in activePlugins"
           :key="plugin.id"
-          class="group hover:shadow-2xl transition-all duration-300 overflow-hidden border-0 bg-white/60 backdrop-blur-md hover:bg-white/70 hover:scale-[1.02]"
+          class="group hover:shadow-2xl transition-all duration-300 overflow-hidden border-0 bg-white/60 backdrop-blur-md hover:bg-white/70 hover:scale-[1.02] cursor-pointer relative"
+          @click="openPluginInModal(plugin)"
         >
-          <CardHeader class="pb-3">
-            <div class="flex items-start gap-4">
+          <!-- 收藏按钮 - 绝对定位 -->
+          <button
+            @click.stop="toggleFavorite(plugin.id, $event)"
+            class="absolute top-3 right-3 z-10 p-1.5 rounded-full transition-all duration-200 hover:bg-white/80 backdrop-blur-sm"
+            :class="isFavorite(plugin.id) ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'"
+            :title="isFavorite(plugin.id) ? '取消收藏' : '收藏'"
+          >
+            <Star 
+              :class="isFavorite(plugin.id) ? 'fill-current' : ''"
+              class="h-4 w-4"
+            />
+          </button>
+
+          <CardHeader class="pb-0 pr-12">
+            <div class="flex items-start gap-3">
               <!-- 左侧：图标 -->
-              <div class="flex-shrink-0 w-16 h-16 flex items-center justify-center text-5xl group-hover:scale-110 transition-transform bg-gradient-to-br from-blue-100/80 to-indigo-100/80 backdrop-blur-sm rounded-xl shadow-inner">
+              <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform bg-gradient-to-br from-blue-100/80 to-indigo-100/80 backdrop-blur-sm rounded-lg shadow-inner">
                 <PluginIcon :icon="plugin.icon" :alt="plugin.name" />
               </div>
               
-              <!-- 右侧：标题和收藏 -->
+              <!-- 右侧：标题 -->
               <div class="flex-1 min-w-0">
-                <div class="flex items-start justify-between gap-2">
-                  <CardTitle class="text-lg font-semibold group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight">
-                    {{ plugin.name }}
-                  </CardTitle>
-                  <button
-                    @click="toggleFavorite(plugin.id, $event)"
-                    class="flex-shrink-0 p-1.5 rounded-full transition-all duration-200 hover:bg-white/80 backdrop-blur-sm"
-                    :class="isFavorite(plugin.id) ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'"
-                    :title="isFavorite(plugin.id) ? '取消收藏' : '收藏'"
-                  >
-                    <Star 
-                      :class="isFavorite(plugin.id) ? 'fill-current' : ''"
-                      class="h-4 w-4"
-                    />
-                  </button>
-                </div>
-                <div class="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" class="text-xs bg-white/50 backdrop-blur-sm border-gray-300/50">
-                    v{{ plugin.version }}
-                  </Badge>
-                  <Badge variant="default" class="text-xs bg-blue-500/80 backdrop-blur-sm">
-                    {{ getStatusText(plugin.status) }}
-                  </Badge>
-                </div>
+                <CardTitle class="text-base font-semibold group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight mb-1">
+                  {{ plugin.name }}
+                </CardTitle>
+                <Badge variant="outline" class="text-xs px-1.5 py-0 bg-white/50 backdrop-blur-sm border-gray-300/50">
+                  v{{ plugin.version }}
+                </Badge>
               </div>
             </div>
           </CardHeader>
           
-          <CardContent class="pb-3">
-            <CardDescription class="line-clamp-3 text-sm min-h-[3.6rem] text-gray-600">
+          <CardContent class="pt-1.5 pb-3">
+            <CardDescription class="line-clamp-3 text-sm text-gray-600 leading-relaxed">
               {{ plugin.description || '暂无描述' }}
             </CardDescription>
-            <div class="mt-3 pt-3 border-t border-gray-200/50">
-              <div class="flex items-center text-xs text-gray-500">
-                <span class="truncate">作者: {{ plugin.author }}</span>
-              </div>
+            <div class="mt-2.5 flex items-center justify-between text-xs text-gray-500">
+              <span class="truncate">{{ plugin.author }}</span>
+              <!-- 新窗口打开按钮 -->
+              <button
+                @click.stop="openPluginInNewWindow(plugin)"
+                class="flex items-center gap-1 px-2 py-1 rounded-md text-blue-500 hover:text-blue-600 hover:bg-blue-50/80 transition-all duration-200 group/link"
+                title="在新窗口中打开"
+              >
+                <ExternalLink class="h-3.5 w-3.5 group-hover/link:scale-110 transition-transform" />
+                <span class="text-xs font-medium">新窗口</span>
+              </button>
             </div>
           </CardContent>
-          
-          <CardFooter class="pt-0 pb-4 flex gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              class="flex-1 bg-blue-500/90 hover:bg-blue-600/90 backdrop-blur-sm shadow-md"
-              @click="openPluginInModal(plugin)"
-              title="在弹窗中打开"
-            >
-              <Maximize2 class="h-3.5 w-3.5 mr-1.5" />
-              弹窗
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              class="flex-1 bg-white/50 hover:bg-white/70 backdrop-blur-sm border-gray-300/50"
-              @click="openPluginInNewWindow(plugin)"
-              title="在新窗口中打开"
-            >
-              <ExternalLink class="h-3.5 w-3.5 mr-1.5" />
-              新窗口
-            </Button>
-          </CardFooter>
         </Card>
       </div>
     </main>
@@ -195,13 +175,13 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getPluginList, type Plugin } from '@/api';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PluginModal from '@/components/PluginModal.vue';
 import PluginIcon from '@/components/PluginIcon.vue';
-import { RefreshCw, Settings, Search, Star, Maximize2, ExternalLink } from 'lucide-vue-next';
+import { RefreshCw, Settings, Search, Star, ExternalLink } from 'lucide-vue-next';
 
 const router = useRouter();
 
@@ -331,22 +311,6 @@ const openPluginInNewWindow = (plugin: Plugin) => {
   }
   
   window.open(pluginUrl, '_blank', 'noopener,noreferrer');
-};
-
-// 获取状态文本
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'ENABLED':
-      return '运行中';
-    case 'LOADED':
-      return '已加载';
-    case 'DISABLED':
-      return '已禁用';
-    case 'ERROR':
-      return '错误';
-    default:
-      return status;
-  }
 };
 
 onMounted(() => {
