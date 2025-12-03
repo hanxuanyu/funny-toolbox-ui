@@ -56,12 +56,14 @@ export const installPlugin = (file: File) => {
  * @param files 静态资源文件数组
  * @param paths 每个文件的相对路径
  * @param importPlugin 是否在打包完成后直接导入系统
+ * @param tags 可选的默认标签列表，逗号分隔写入 plugin.yml
  */
 export const packFrontendPlugin = (
   meta: FrontendPluginPackMeta,
   files: File[],
   paths: string[],
-  importPlugin: boolean = false
+  importPlugin: boolean = false,
+  tags?: string[]
 ) => {
   const formData = new FormData();
   
@@ -77,8 +79,14 @@ export const packFrontendPlugin = (
     formData.append('paths', path);
   });
   
+  const params = new URLSearchParams();
+  params.append('import', String(importPlugin));
+  if (tags && tags.length > 0) {
+    params.append('tags', tags.join(','));
+  }
+  
   return request.post<FrontendPluginPackResponse>(
-    `/platform/plugins/pack/frontend?import=${importPlugin}`,
+    `/platform/plugins/pack/frontend?${params.toString()}`,
     formData
   );
 };

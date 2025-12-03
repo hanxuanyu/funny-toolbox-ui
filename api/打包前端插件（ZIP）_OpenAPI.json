@@ -31,6 +31,27 @@
         "operationId": "packFrontendPlugin",
         "parameters": [
           {
+            "name": "paths",
+            "in": "query",
+            "description": "每个文件的相对路径，与 files 顺序一一对应，例如 js/app.js、index.html",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "description": "逗号分隔的标签列表（可选），例如：tool,video,obs。将写入 plugin.yml 的 tags 字段，用于默认标签",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "import",
             "in": "query",
             "description": "是否在打包完成后直接导入系统",
@@ -45,13 +66,13 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "required": [
-                  "meta"
-                ],
                 "type": "object",
                 "properties": {
                   "meta": {
-                    "$ref": "#/components/schemas/FrontendPluginPackMeta"
+                    "type": "string",
+                    "description": "插件元数据 JSON（作为 multipart 的 meta 字段，可为 application/json 或纯文本 JSON）",
+                    "name": "meta",
+                    "in": "query"
                   },
                   "zip": {
                     "type": "string",
@@ -66,13 +87,6 @@
                     "items": {
                       "type": "string",
                       "format": "binary"
-                    }
-                  },
-                  "paths": {
-                    "type": "array",
-                    "description": "每个文件的相对路径，与 files 顺序一一对应，例如 js/app.js、index.html",
-                    "items": {
-                      "type": "string"
                     }
                   }
                 }
@@ -96,44 +110,6 @@
     }
   },
   "components": {
-    "FrontendPluginPackMeta": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "refType": null
-        },
-        "name": {
-          "type": "string",
-          "refType": null
-        },
-        "version": {
-          "type": "string",
-          "refType": null
-        },
-        "description": {
-          "type": "string",
-          "refType": null
-        },
-        "author": {
-          "type": "string",
-          "refType": null
-        },
-        "iconMeta": {
-          "$ref": "#/components/schemas/PluginIcon",
-          "refType": "PluginIcon"
-        },
-        "frontendEntry": {
-          "type": "string",
-          "refType": null
-        },
-        "frontendBasePath": {
-          "type": "string",
-          "refType": null
-        }
-      },
-      "description": "插件元数据 JSON"
-    },
     "ResultFrontendPluginPackResult": {
       "type": "object",
       "properties": {
@@ -146,35 +122,6 @@
         },
         "data": {
           "$ref": "#/components/schemas/FrontendPluginPackResult"
-        }
-      }
-    },
-    "PluginIcon": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "EMOJI",
-            "URL",
-            "SVG",
-            "FONT_AWESOME",
-            "MATERIAL",
-            "CUSTOM"
-          ],
-          "refType": null
-        },
-        "value": {
-          "type": "string",
-          "refType": null
-        },
-        "color": {
-          "type": "string",
-          "refType": null
-        },
-        "style": {
-          "type": "string",
-          "refType": null
         }
       }
     },

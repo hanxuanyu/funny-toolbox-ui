@@ -122,6 +122,50 @@
           </div>
 
           <div class="space-y-2">
+            <Label for="plugin-tags">默认标签</Label>
+            <div class="space-y-2">
+              <div class="flex gap-2">
+                <Input
+                  id="plugin-tags"
+                  v-model="tagInput"
+                  placeholder="输入标签后按回车"
+                  @keydown.enter.prevent="addTag"
+                  :disabled="tagLimitReached"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  @click="addTag"
+                  :disabled="!canAddTag"
+                >
+                  添加
+                </Button>
+              </div>
+              <p class="text-xs text-gray-500">标签会写入 plugin.yml 的 tags 字段，方便后续筛选</p>
+              <div v-if="tags.length" class="flex flex-wrap gap-2">
+                <Badge
+                  v-for="tag in tags"
+                  :key="tag"
+                  variant="secondary"
+                  class="flex items-center gap-1 py-1 pr-1 pl-2"
+                >
+                  <span>{{ tag }}</span>
+                  <button
+                    type="button"
+                    class="rounded-full p-0.5 hover:bg-white/40"
+                    @click="removeTag(tag)"
+                    aria-label="移除标签"
+                  >
+                    <X class="h-3 w-3" />
+                  </button>
+                </Badge>
+              </div>
+              <p v-else class="text-xs text-gray-400">暂未添加标签</p>
+              <p v-if="tagLimitReached" class="text-xs text-red-500">最多支持 {{ MAX_TAGS }} 个标签</p>
+            </div>
+          </div>
+
+          <div class="space-y-2">
             <Label for="plugin-entry">前端入口文件</Label>
             <Input
               id="plugin-entry"
@@ -185,6 +229,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -222,11 +267,17 @@ const formData = ref<Omit<FrontendPluginPackMeta, 'iconMeta'>>({
 const iconType = ref<'EMOJI' | 'URL' | 'SVG' | 'FONT_AWESOME' | 'MATERIAL'>('FONT_AWESOME');
 const iconValue = ref('fas fa-tools');
 const packing = ref(false);
+const tags = ref<string[]>([]);
+const tagInput = ref('');
+const MAX_TAGS = 10;
 
 const isOpen = computed({
   get: () => props.open,
   set: (value) => emit('update:open', value),
 });
+
+const tagLimitReached = computed(() => tags.value.length >= MAX_TAGS);
+const canAddTag = computed(() => tagInput.value.trim() !== '' && !tagLimitReached.value);
 
 // 表单验证
 const isFormValid = computed(() => {
@@ -403,11 +454,39 @@ const resetForm = () => {
   iconType.value = 'FONT_AWESOME';
   iconValue.value = 'fas fa-tools';
   isDragging.value = false;
+  tags.value = [];
+  tagInput.value = '';
   
   // 重置文件输入
   if (fileInputRef.value) {
     fileInputRef.value.value = '';
   }
+};
+
+const addTag = () => {
+  const value = tagInput.value.trim();
+  if (!value) {
+    return;
+  }
+  if (value.includes(',')) {
+    toast.error('标签不能包含逗号');
+    return;
+  }
+  if (tags.value.includes(value)) {
+    toast.info('标签已存在');
+    tagInput.value = '';
+    return;
+  }
+  if (tagLimitReached.value) {
+    toast.error(`最多支持 ${MAX_TAGS} 个标签`);
+    return;
+  }
+  tags.value = [...tags.value, value];
+  tagInput.value = '';
+};
+
+const removeTag = (tag: string) => {
+  tags.value = tags.value.filter((item) => item !== tag);
 };
 
 // 生成文件路径
@@ -431,6 +510,10 @@ const handlePack = async () => {
   packing.value = true;
 
   try {
+    const normalizedTags = tags.value
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
+
     // 构建元数据
     const meta: FrontendPluginPackMeta = {
       ...formData.value,
@@ -446,7 +529,13 @@ const handlePack = async () => {
     const paths = generateFilePaths(uploadedFiles.value);
 
     // 调用打包接口，不立即导入
-    const response = await packFrontendPlugin(meta, uploadedFiles.value, paths, false);
+    const response = await packFrontendPlugin(
+      meta,
+      uploadedFiles.value,
+      paths,
+      false,
+      normalizedTags.length ? normalizedTags : undefined
+    );
     
     if (response.data.code === 200) {
       const result = response.data.data;
