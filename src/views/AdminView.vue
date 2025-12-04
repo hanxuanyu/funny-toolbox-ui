@@ -338,24 +338,36 @@ const tagManagementPlugin = ref<Plugin | null>(null);
 
 // 定时器ID
 let authCheckTimer: number | null = null;
+const SESSION_REDIRECT_DELAY = 1000;
+let sessionExpiredHandled = false;
+
+const handleSessionExpiration = () => {
+  if (sessionExpiredHandled) return;
+  sessionExpiredHandled = true;
+
+  if (authCheckTimer) {
+    clearInterval(authCheckTimer);
+    authCheckTimer = null;
+  }
+
+  toast.error('登录已过期，即将返回首页');
+
+  setTimeout(() => {
+    router.push('/');
+  }, SESSION_REDIRECT_DELAY);
+};
 
 // 检查认证状态
 const checkAuthSession = async () => {
   try {
-    await checkAuthStatus();
+    const response = await checkAuthStatus({ silent: true });
+    const authenticated = Boolean(response.data.data?.authenticated);
+    if (!authenticated) {
+      handleSessionExpiration();
+    }
   } catch (err: any) {
-    // 如果返回401或其他错误，说明session失效
     if (err.response?.status === 401 || err.message?.includes('401')) {
-      console.log('Session已失效，跳转到登录页');
-      localStorage.removeItem('isAuthenticated');
-      // 清除定时器
-      if (authCheckTimer) {
-        clearInterval(authCheckTimer);
-        authCheckTimer = null;
-      }
-      toast.error('登录已过期，请重新登录');
-      // 立即跳转
-      router.push('/login');
+      handleSessionExpiration();
     }
   }
 };
@@ -550,7 +562,6 @@ const handleLogout = async () => {
   } catch {
     // 忽略错误
   } finally {
-    localStorage.removeItem('isAuthenticated');
     router.push('/login');
   }
 };

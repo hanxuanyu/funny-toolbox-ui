@@ -19,11 +19,19 @@ export const logout = () => {
   return request.post<ApiResult<void>>('/auth/logout');
 };
 
+export interface CheckAuthStatusOptions {
+  /**
+   * 静默检查：不触发全局未授权提示
+   */
+  silent?: boolean;
+}
+
 /**
  * 检查认证状态
  */
-export const checkAuthStatus = () => {
-  return request.get<AuthStatusResponse>('/platform/auth/status');
+export const checkAuthStatus = (options: CheckAuthStatusOptions = {}) => {
+  const config = options.silent ? { skipAuthHandler: true } : undefined;
+  return request.get<AuthStatusResponse>('/platform/auth/status', config);
 };
 
 /**

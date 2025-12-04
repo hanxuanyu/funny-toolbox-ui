@@ -278,7 +278,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getPluginList, getAllTags, type Plugin } from '@/api';
+import { getPluginList, getAllTags, checkAuthStatus, type Plugin } from '@/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -297,6 +297,7 @@ const showPluginModal = ref(false);
 const selectedPlugin = ref<Plugin | null>(null);
 const searchQuery = ref('');
 const favorites = ref<Set<string>>(new Set());
+const isAuthenticated = ref(false);
 
 // 标签相关状态
 const allTags = ref<string[]>([]);
@@ -366,10 +367,15 @@ const clearTagFilters = () => {
   selectedTags.value.clear();
 };
 
-// 检查是否已登录
-const isAuthenticated = computed(() => {
-  return localStorage.getItem('isAuthenticated') === 'true';
-});
+// 探测会话状态
+const probeSessionStatus = async () => {
+  try {
+    const response = await checkAuthStatus({ silent: true });
+    isAuthenticated.value = Boolean(response.data.data?.authenticated);
+  } catch (_error) {
+    isAuthenticated.value = false;
+  }
+};
 
 // 过滤出已启用的插件
 const activePlugins = computed(() => {
@@ -466,6 +472,7 @@ onMounted(() => {
   loadFavorites();
   loadPlugins();
   loadAllTags();
+  probeSessionStatus();
 });
 </script>
 

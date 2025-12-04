@@ -77,9 +77,6 @@ const handleLogin = async () => {
   try {
     await login(formData);
     
-    // 登录成功，保存认证状态
-    localStorage.setItem('isAuthenticated', 'true');
-    
     // 跳转到目标页面或管理页
     const redirect = route.query.redirect as string || '/admin';
     router.push(redirect);

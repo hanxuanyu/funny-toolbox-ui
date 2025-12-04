@@ -45,17 +45,16 @@ request.interceptors.request.use(
  * 处理登录失效的统一方法
  */
 let isRedirecting = false;
+const UNAUTHORIZED_REDIRECT_DELAY = 1500;
 const handleUnauthorized = () => {
   if (isRedirecting) return;
   
   isRedirecting = true;
-  localStorage.removeItem('isAuthenticated');
-  
-  toast.error('登录已失效，即将跳转到首页');
+  toast.error('登录已失效，即将返回首页');
   
   setTimeout(() => {
     window.location.href = '/';
-  }, 3000);
+  }, UNAUTHORIZED_REDIRECT_DELAY);
 };
 
 /**
@@ -78,7 +77,7 @@ request.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    const config = error.config as InternalAxiosRequestConfig & { isLoginRequest?: boolean };
+    const config = error.config as (InternalAxiosRequestConfig & { isLoginRequest?: boolean; skipAuthHandler?: boolean }) | undefined;
     const isLoginRequest = config?.url?.includes('/auth/login');
     
     // 如果是登录请求的 401，不做特殊处理，让登录页面自己处理
@@ -88,20 +87,14 @@ request.interceptors.response.use(
     
     // 处理 HTTP 401 错误（session 过期）
     if (error.response?.status === 401) {
-      handleUnauthorized();
+      if (!config?.skipAuthHandler) {
+        handleUnauthorized();
+      }
       return Promise.reject(new Error('登录已过期'));
     }
     
     // 处理网络错误（可能是 CORS 阻止的 401）
     if (!error.response && error.request) {
-      const errorMessage = error.message || '';
-      if (errorMessage.includes('Network Error') || errorMessage.includes('ERR_FAILED')) {
-        const isAuthenticated = localStorage.getItem('isAuthenticated');
-        if (isAuthenticated === 'true') {
-          handleUnauthorized();
-          return Promise.reject(new Error('登录已过期'));
-        }
-      }
       return Promise.reject(new Error('网络错误，请检查网络连接'));
     }
     
