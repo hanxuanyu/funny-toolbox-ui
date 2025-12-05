@@ -4,12 +4,12 @@
   </span>
   <i v-else-if="iconType === 'fa'" :class="iconValue" />
   <i v-else-if="iconType === 'md'" class="material-icons">{{ iconValue }}</i>
-  <span v-else-if="iconType === 'svg'" class="inline-flex items-center justify-center w-16 h-16" v-html="iconValue" />
+  <span v-else-if="iconType === 'svg'" class="inline-flex items-center justify-center w-full h-full" v-html="iconValue" />
   <img
     v-else-if="iconType === 'url'"
     :src="iconValue"
     :alt="alt"
-    class="inline-block w-16 h-16 object-contain"
+    class="inline-block w-full h-full object-contain"
   />
   <span v-else class="inline-block">
     {{ defaultIcon }}
@@ -95,9 +95,9 @@ const iconValue = computed(() => {
 
 /* Font Awesome 图标尺寸 */
 .fa, .fas, .far, .fal, .fab {
-  font-size: 64px;
-  width: 64px;
-  height: 64px;
+  font-size: 2rem;
+  width: 100%;
+  height: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -107,7 +107,7 @@ const iconValue = computed(() => {
   font-family: 'Material Icons';
   font-weight: normal;
   font-style: normal;
-  font-size: 64px;
+  font-size: 2rem;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -119,11 +119,12 @@ const iconValue = computed(() => {
   vertical-align: middle;
 }
 
-/* SVG 图标尺寸约束 */
+/* SVG 图标尺寸约束 - 确保不会溢出父容器 */
 :deep(svg) {
-  width: 4rem;
-  height: 4rem;
-  max-width: 4rem;
-  max-height: 4rem;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 </style>
